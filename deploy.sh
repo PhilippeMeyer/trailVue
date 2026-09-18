@@ -20,9 +20,11 @@ cd frontend || exit 1
 npm run build || { echo "❌ React build failed"; exit 1; }
 cd ..
 
-# 2. Deploy Node backend to Pi (excluding node_modules)
+# 2. Deploy Node backend to Pi (excluding node_modules and the tour data)
+# gpx/ is the server's own data directory: tours downloaded on the Pi via
+# /api/update live only there, so it is never pushed or overwritten from here.
 echo "🚀 Syncing Node server to Pi..."
-rsync -avz --delete --exclude node_modules "$NODE_SRC_DIR/" "$PI_USER@$PI_HOST:$TMP_DIR"
+rsync -avz --delete --exclude node_modules --exclude gpx "$NODE_SRC_DIR/" "$PI_USER@$PI_HOST:$TMP_DIR"
 
 # 3. Deploy React app to Apache on Pi
 echo "🚀 Syncing React build to Pi Apache server..."
@@ -31,8 +33,12 @@ rsync -avz --delete "$REACT_BUILD_DIR/" "$PI_USER@$PI_HOST:$TMP_REACT_DIR"
 # 4. Connecting to the Pi to copy the files to the target location and change user
 ssh $PI_USER@$PI_HOST <<EOF
 sudo mkdir -p $DEPLOY_DIR
-sudo find $DEPLOY_DIR -mindepth 1 -delete
-sudo cp -r $TMP_DIR/* $DEPLOY_DIR/
+# Replace the deployed code, but keep gpx/ (downloaded tours) and .env (the
+# Pi's own credentials) — both are server-side state, not build output.
+sudo find $DEPLOY_DIR -mindepth 1 -maxdepth 1 ! -name gpx ! -name .env -exec rm -rf {} +
+# '/.' rather than '/*' so dotfiles are copied too.
+sudo cp -r $TMP_DIR/. $DEPLOY_DIR/
+sudo mkdir -p $DEPLOY_DIR/gpx
 sudo chown -R $APP_USER:$APP_USER $DEPLOY_DIR/
 EOF
 

@@ -103,7 +103,18 @@ Files land in `$DEPLOY_DIR` (default `/srv/appservers/trailVue`):
 ```
 /srv/appservers/trailVue
 ├── client-build/   # React build, served by Apache
+├── gpx/            # downloaded tours — server-side state, never overwritten
+├── .env            # the Pi's own credentials — never overwritten
 └── index.js …      # Express server, run by pm2
+```
+
+Deploying replaces the code but leaves `gpx/` and `.env` alone. Tours fetched
+on the server via `/api/update` live only there, so they are neither pushed
+from your machine nor deleted by a deploy. That also means the Pi needs its own
+`backend/.env` created once, by hand:
+
+```bash
+ssh <pi> 'sudo -u appservers tee /srv/appservers/trailVue/.env' < backend/.env
 ```
 
 ## Server configuration
