@@ -10,3 +10,6 @@ deploy.conf
 .DS_Store
 .idea/
 .vscode/
+
+# Private work log, not for publication
+WORKLOG.md
