@@ -1,8 +1,12 @@
-require('dotenv').config();
+const path = require('path');
+
+// Resolve .env next to this file rather than relative to the working
+// directory: pm2 restarts the process with whatever cwd it recorded at
+// creation time, which is not necessarily the app directory.
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
 const fs = require('fs');
-const path = require('path');
 const cors = require('cors');
 const KomootApi = require('./komootApi');
 

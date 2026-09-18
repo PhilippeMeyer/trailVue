@@ -13,6 +13,9 @@ TMP_REACT_DIR="/tmp/trailVue/client-build"
 REACT_BUILD_DIR="./frontend/build"
 NODE_SRC_DIR="./backend"
 APP_USER="${APP_USER:-appservers}"
+# Must match the existing pm2 process name, or a duplicate is started that
+# fights the running one for port 5000.
+PM2_NAME="${PM2_NAME:-trailvue}"
 
 # 1. Optional: Build React client
 echo "🔨 Building React app..."
@@ -46,9 +49,14 @@ EOF
 echo "🔁 Installing server dependencies and restarting with pm2..."
 ssh "$PI_USER@$PI_HOST" << EOF
 sudo -u $APP_USER bash -c '
-  cd $DEPLOY_DIR &&
-  npm install &&
-  pm2 restart trailVue || pm2 start index.js --name trailVue &&
+  set -e
+  cd $DEPLOY_DIR
+  npm install
+  if pm2 describe $PM2_NAME > /dev/null 2>&1; then
+    pm2 restart $PM2_NAME --update-env
+  else
+    pm2 start index.js --name $PM2_NAME
+  fi
   pm2 save
 '
 EOF
