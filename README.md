@@ -1,0 +1,151 @@
+# trailVue
+
+A web application to visualize past hiking trails on a map.
+
+Recorded tours are imported from [Komoot](https://www.komoot.com/), stored as
+GeoJSON files, and rendered by a React client using Leaflet.
+
+## Architecture
+
+| Part | Stack | Role |
+| --- | --- | --- |
+| `frontend/` | React 19, MUI, react-leaflet | Map UI, served as a static build |
+| `backend/` | Node.js, Express 5 | Serves the GeoJSON files and syncs new tours from Komoot |
+
+The backend keeps the tours in `backend/gpx/` (one `<tourId>.geojson` per tour)
+and exposes:
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /api/files` | List the available GeoJSON files |
+| `GET /api/update` | Log into Komoot and download any tour not yet stored |
+| `GET /trailVue/gpx/<file>` | Serve a stored GeoJSON file |
+
+## Getting started
+
+```bash
+git clone https://github.com/PhilippeMeyer/trailVue.git
+cd trailVue
+
+# Backend
+cd backend
+npm install
+cp .env.example .env     # then fill in your Komoot credentials
+npm start                # http://localhost:5000
+
+# Frontend (in another terminal)
+cd frontend
+npm install
+npm start                # http://localhost:3000
+```
+
+### Configuration
+
+The backend reads its configuration from `backend/.env` (see `.env.example`):
+
+| Variable | Description |
+| --- | --- |
+| `KOMOOT_EMAIL` | Komoot account e-mail |
+| `KOMOOT_PASSWORD` | Komoot account password |
+| `PORT` | Port the API listens on (default `5000`) |
+
+`.env` is git-ignored. Never commit real credentials.
+
+## Deploying
+
+`deploy.sh` builds the React client and pushes both the build and the server to
+a remote host (originally a Raspberry Pi), then restarts the backend with pm2.
+
+Copy `deploy.conf.example` to `deploy.conf` (git-ignored) and set your own
+target:
+
+```bash
+cp deploy.conf.example deploy.conf
+./deploy.sh
+```
+
+Files land in `$DEPLOY_DIR` (default `/srv/appservers/trailVue`):
+
+```
+/srv/appservers/trailVue
+├── client-build/   # React build, served by Apache
+└── index.js …      # Express server, run by pm2
+```
+
+## Server configuration
+
+The examples below use placeholder names — substitute your own host, domain and
+subnets.
+
+### Apache
+
+Apache serves the React client and proxies `/trailVue/api` to the Node server on
+port 5000. Because the app is reached both from the LAN and over a VPN, several
+aliases point at the same vhost:
+
+```apache
+# /etc/apache2/sites-available/trailvue.conf
+
+<VirtualHost *:80>
+    ServerName myserver.local
+    ServerAlias myserver.home
+    ServerAlias 192.168.1.10
+
+    Alias /trailVue /srv/appservers/trailVue/client-build
+    <Directory /srv/appservers/trailVue/client-build>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require ip 192.168.0.0/16
+        Require ip 10.0.0.0/8
+        Require local
+    </Directory>
+
+    ProxyPreserveHost On
+
+    <Proxy /trailVue/api>
+        Require ip 192.168.0.0/16
+        Require ip 10.0.0.0/8
+        Require local
+    </Proxy>
+    ProxyPass /trailVue/api http://localhost:5000/api
+    ProxyPassReverse /trailVue/api http://localhost:5000/api
+
+    <Proxy /trailVue/gpx>
+        Require ip 192.168.0.0/16
+        Require ip 10.0.0.0/8
+        Require local
+    </Proxy>
+    ProxyPass /trailVue/gpx http://localhost:5000/trailVue/gpx
+    ProxyPassReverse /trailVue/gpx http://localhost:5000/trailVue/gpx
+</VirtualHost>
+```
+
+Access is restricted to private subnets, so the app is not reachable from the
+internet.
+
+### Name resolution (LAN + VPN)
+
+`myserver.local` is published by avahi and only resolves on the LAN. WireGuard
+clients cannot resolve avahi names, so a lightweight DNS server (dnsmasq) runs
+on the host and answers over the VPN interface:
+
+```
+# /etc/dnsmasq.conf
+
+interface=wg0
+listen-address=127.0.0.1,10.0.0.1
+```
+
+WireGuard hands that resolver to its clients:
+
+```
+# /etc/wireguard/wg0.conf
+
+DNS = 192.168.1.10
+```
+
+VPN clients then resolve `myserver.home` through dnsmasq.
+
+## License
+
+ISC

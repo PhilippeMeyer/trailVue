@@ -1,0 +1,5 @@
+# Copy to deploy.conf (git-ignored) and adjust for your own host.
+PI_USER="pi"
+PI_HOST="raspberrypi.local"
+DEPLOY_DIR="/srv/appservers/trailVue"
+APP_USER="appservers"

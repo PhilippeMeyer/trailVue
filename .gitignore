@@ -1,0 +1,12 @@
+# Local deploy target overrides (host, user, paths)
+deploy.conf
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
