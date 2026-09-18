@@ -12,7 +12,10 @@ export default defineConfig({
     // deploy.sh rsyncs ./frontend/build, so keep CRA's output directory
     // rather than Vite's default "dist".
     outDir: 'build',
-    sourcemap: true,
+    // No source map in the build: deploy.sh ships the whole build directory to
+    // the Pi, and the map is larger than the bundle itself (2.5 MB vs 550 kB).
+    // `npm run dev` keeps source maps regardless - this only affects builds.
+    sourcemap: false,
   },
 
   server: {
