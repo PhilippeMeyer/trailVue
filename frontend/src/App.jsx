@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button, Dialog, DialogTitle, DialogContent,
   DialogActions, List, ListItem, ListItemText, Snackbar, Alert
@@ -172,7 +172,7 @@ function App() {
         setSelectedYear={setSelectedYear}
         years={years}
         updateTracks={updateTracks}
-        tracks={tracks}
+        filteredTracks={filteredTracks}
       />
 
       {/* Map with filtered tracks. center/zoom only apply until the first

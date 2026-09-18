@@ -98,10 +98,12 @@ Komoot client is stubbed.
 ```bash
 cd backend  && npm test    # node:test -- API behaviour, sync locking
 cd frontend && npm test    # vitest   -- stat calculations, rendering
+cd frontend && npm run lint  # eslint -- unused code, rules of hooks
 ```
 
-`npm run test:watch` in `frontend/` re-runs on change. CI runs both suites, a
-production build and a dependency audit on every push and pull request.
+`npm run test:watch` in `frontend/` re-runs on change. CI runs both suites, the
+client lint, a production build and a dependency audit on every push and pull
+request.
 
 ## Deploying
 

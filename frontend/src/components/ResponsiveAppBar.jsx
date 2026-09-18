@@ -10,20 +10,23 @@ export default function ResponsiveAppBar({
   setSelectedYear,
   years,
   updateTracks,
-  tracks
+  filteredTracks
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // === 🧮 Compute stats from tracks
-  const filteredTracks = selectedYear === 'All'
-    ? tracks
-    : tracks.filter(t => new Date(t.geojson.properties.date).getFullYear().toString() === selectedYear);
-
+  // === 🧮 Compute stats from the tracks App is drawing.
+  // The filtering itself belongs to App: doing it again here meant two year
+  // rules - the string prefix of the date there, the browser-local calendar
+  // year here - which disagree for a hike recorded either side of midnight on
+  // New Year's Eve. The header would then have counted a trail the map did not
+  // draw.
   const total = filteredTracks.length;
   const totalDistance = filteredTracks.reduce((sum, t) => sum + parseFloat(t.length), 0).toFixed(2);
   const totalElevation = filteredTracks.reduce((sum, t) => sum + parseFloat(t.elevationGain), 0).toFixed(0);
-  const totalTime = (filteredTracks.reduce((sum, t) => sum + t.timeSpent, 0).toFixed(0) / 60).toFixed(2);
+  // Minutes to hours. This used to round to whole minutes first, via a toFixed
+  // string that was then divided by 60.
+  const totalTime = (filteredTracks.reduce((sum, t) => sum + t.timeSpent, 0) / 60).toFixed(2);
 
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);

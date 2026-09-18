@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, afterEach } from 'vitest';
+import { test, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from './App';
 
@@ -162,4 +162,43 @@ test('trails that fail to load are counted in a warning', async () => {
 
   render(<App />);
   expect(await screen.findByText(/1 of 1 trails could not be loaded/i)).toBeInTheDocument();
+});
+
+test('the header counts exactly the trails the map draws, across a year boundary', async () => {
+  // A hike recorded at 00:30 local on 1 January reads as the previous year in
+  // the file's UTC timestamp. App filters on that string; the header used to
+  // re-derive the year with the browser's local calendar and disagree.
+  const originalTZ = process.env.TZ;
+  process.env.TZ = 'Europe/Zurich';
+
+  const newYearsEve = {
+    ...TOUR,
+    properties: { ...TOUR.properties, id: 111, name: 'Silvesterlauf', date: '2024-12-31T23:30:00.000Z' },
+  };
+  const summer = {
+    ...TOUR,
+    properties: { ...TOUR.properties, id: 222, name: 'Sommertour', date: '2025-06-01T09:00:00.000Z' },
+  };
+
+  global.fetch = vi.fn((url) => {
+    const u = String(url);
+    if (u.includes('/files')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(['111.geojson', '222.geojson']) });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(u.includes('111') ? newYearsEve : summer) });
+  });
+
+  try {
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByTestId('track')).toHaveLength(2));
+
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(await screen.findByRole('option', { name: '2024' }));
+
+    // Both must agree: one trail drawn, one trail counted.
+    await waitFor(() => expect(screen.getAllByTestId('track')).toHaveLength(1));
+    expect(screen.getByText(/1 hikes/)).toBeInTheDocument();
+  } finally {
+    process.env.TZ = originalTZ;
+  }
 });
