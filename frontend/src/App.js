@@ -25,6 +25,7 @@ function App() {
       const geojson = await res.json();
 
       return {
+        id: geojson.properties.id,
         name: geojson.properties.name,
         geojson,
         coordinates: geojson.geometry.coordinates.map(coord => [coord[1], coord[0]]),
@@ -33,7 +34,7 @@ function App() {
         date: geojson.properties.date.split('T')[0],
         year: geojson.properties.date.slice(0, 4),
         timeSpent: geojson.properties.duration / 60,
-        averageSpeed: geojson.properties.distance / geojson.properties.duration * 60 / 1000
+        averageSpeed: geojson.properties.distance / geojson.properties.duration * 3600 / 1000
       };
     } catch (err) {
       console.error("Error loading file:", fileName, err);
@@ -129,9 +130,9 @@ function App() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; OpenStreetMap contributors'
         />
-        {filteredTracks.map((track, index) => (
+        {filteredTracks.map((track) => (
           <Polyline
-            key={index}
+            key={track.id}
             positions={track.coordinates}
             pathOptions={{ color: yearColorMap[track.year] || '#000' }}
             eventHandlers={{ click: () => handleClickOpen(track) }}
@@ -151,7 +152,7 @@ function App() {
           {selectedTrack && (
             <List>
               <ListItem>
-                <ListItemText primary="File Name" secondary={selectedTrack.name} />
+                <ListItemText primary="Tour Name" secondary={selectedTrack.name} />
               </ListItem>
               <ListItem>
                 <ListItemText primary="Length (km)" secondary={selectedTrack.length} />

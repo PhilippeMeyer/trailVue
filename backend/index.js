@@ -8,6 +8,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
+const compression = require('compression');
 const KomootApi = require('./komootApi');
 
 const PORT = process.env.PORT || 5000;
@@ -23,13 +24,23 @@ let syncInProgress = false;
 
 app.use(cors())
 
+// GeoJSON is highly repetitive text and compresses by roughly two thirds.
+app.use(compression())
+
 const directoryPath = path.join(__dirname, 'gpx');
 if (!fs.existsSync(directoryPath)) {
   fs.mkdirSync(directoryPath, { recursive: true });
 }
 
 // Serve static files from the 'public' directory and from the react build
-app.use('/trailVue/gpx', express.static(path.join(__dirname, 'gpx')));
+// Tour files are immutable: each is named after its Komoot tour id and is
+// written once, never rewritten. Long-lived caching means a repeat visit
+// re-fetches nothing. NB: if the stored format ever changes again (as it did
+// when the files were compacted), cached copies survive until this expires.
+app.use('/trailVue/gpx', express.static(path.join(__dirname, 'gpx'), {
+  maxAge: '30d',
+  immutable: true
+}));
 
 // Endpoint to get the list of files in the 'public' directory
 app.get('/api/files', (req, res) => {
