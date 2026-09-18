@@ -1,10 +1,10 @@
+import { describe, test, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from './App';
 
-// react-leaflet ships ESM that CRA's jest setup will not transform, and a real
-// map cannot lay itself out in jsdom anyway. Swapping it for plain elements
+// A real map cannot lay itself out in jsdom. Swapping it for plain elements
 // keeps the component tree under test while still exercising App's own logic.
-jest.mock('react-leaflet', () => {
+vi.mock('react-leaflet', () => {
   const { createElement } = require('react');
   return {
     MapContainer: ({ children }) => createElement('div', { 'data-testid': 'map' }, children),
@@ -32,7 +32,7 @@ const TOUR = {
 };
 
 const mockFetch = (files, tour) => {
-  global.fetch = jest.fn((url) =>
+  global.fetch = vi.fn((url) =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve(String(url).includes('/files') ? files : tour),
@@ -40,7 +40,7 @@ const mockFetch = (files, tour) => {
   );
 };
 
-afterEach(() => jest.resetAllMocks());
+afterEach(() => vi.resetAllMocks());
 
 test('renders the toolbar with no tours', async () => {
   mockFetch([], null);
@@ -69,12 +69,12 @@ test('average speed is km/h, not km/min', async () => {
 });
 
 test('a tour that fails to load is skipped rather than breaking the map', async () => {
-  global.fetch = jest.fn((url) =>
+  global.fetch = vi.fn((url) =>
     String(url).includes('/files')
       ? Promise.resolve({ ok: true, json: () => Promise.resolve(['broken.geojson']) })
       : Promise.resolve({ ok: false })
   );
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
   render(<App />);
   expect(await screen.findByText(/0 hikes/)).toBeInTheDocument();
 });

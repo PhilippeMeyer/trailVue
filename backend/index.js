@@ -103,7 +103,11 @@ app.get('/api/update', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Exported so tests can shut the server down instead of forcing the process
+// to exit while assertions are still running.
+module.exports = { app, server };
 

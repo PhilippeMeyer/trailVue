@@ -67,7 +67,7 @@ export default function ResponsiveAppBar({
       <Toolbar>
         <Box
           component="img"
-          src={`${process.env.PUBLIC_URL}/trailVueBar.png`}
+          src={`${import.meta.env.BASE_URL}trailVueBar.png`}
           alt="TrailVue Logo"
           sx={{ height: 40, mr: 2, borderRadius: 1, mx: 10 }}
         />

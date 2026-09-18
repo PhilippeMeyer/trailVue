@@ -1,5 +1,7 @@
 # trailVue
 
+[![CI](https://github.com/PhilippeMeyer/trailVue/actions/workflows/ci.yml/badge.svg)](https://github.com/PhilippeMeyer/trailVue/actions/workflows/ci.yml)
+
 A web application to visualize past hiking trails on a map.
 
 Recorded tours are imported from [Komoot](https://www.komoot.com/), stored as
@@ -9,7 +11,7 @@ GeoJSON files, and rendered by a React client using Leaflet.
 
 | Part | Stack | Role |
 | --- | --- | --- |
-| `frontend/` | React 19, MUI, react-leaflet | Map UI, served as a static build |
+| `frontend/` | React 19, Vite, MUI, react-leaflet | Map UI, served as a static build |
 | `backend/` | Node.js, Express 5 | Serves the GeoJSON files and syncs new tours from Komoot |
 
 The backend keeps the tours in `backend/gpx/` (one `<tourId>.geojson` per tour)
@@ -70,8 +72,11 @@ npm start                # http://localhost:5000
 # Frontend (in another terminal)
 cd frontend
 npm install
-npm start                # http://localhost:3000
+npm run dev              # http://localhost:5173
 ```
+
+The dev server proxies `/api` and `/trailVue/gpx` to the backend on port 5000,
+so both halves work without CORS configuration.
 
 ### Configuration
 
@@ -84,6 +89,19 @@ The backend reads its configuration from `backend/.env` (see `.env.example`):
 | `PORT` | Port the API listens on (default `5000`) |
 
 `.env` is git-ignored. Never commit real credentials.
+
+## Tests
+
+Both packages have their own suite and neither needs network access -- the
+Komoot client is stubbed.
+
+```bash
+cd backend  && npm test    # node:test -- API behaviour, sync locking
+cd frontend && npm test    # vitest   -- stat calculations, rendering
+```
+
+`npm run test:watch` in `frontend/` re-runs on change. CI runs both suites, a
+production build and a dependency audit on every push and pull request.
 
 ## Deploying
 

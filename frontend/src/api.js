@@ -1,4 +1,4 @@
-const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+const isDev = import.meta.env.DEV;
 
 export const API_BASE_URL = isDev
   ? 'http://localhost:5000/api' // dev server
