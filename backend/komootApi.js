@@ -24,15 +24,11 @@ class KomootApi {
    */
   static async sendRequest(url, config = {}, critical = true) {
     try {
-      const res = await axios.get(url, config);
-      return res;
+      return await axios.get(url, config);
     } catch (err) {
-      if (err.response) {
-        console.error(`[KomootApi] HTTP ${err.response.status}:`, err.response.data);
-      } else {
-        console.error(`[KomootApi] Request failed:`, err.message);
-      }
-      if (critical) process.exit(1);
+      const detail = err.response ? `HTTP ${err.response.status}` : err.message;
+      console.error(`[KomootApi] Request failed (${detail}): ${url}`);
+      if (critical) throw new Error(`Komoot request failed: ${detail}`);
       return null;
     }
   }
@@ -50,7 +46,6 @@ class KomootApi {
 
     const url = `https://api.komoot.de/v006/account/email/${email}/`;
     const res = await KomootApi.sendRequest(url, authHeader);
-    if (!res) return;
 
     const data = res.data;
     this.userId = data.username;
@@ -117,7 +112,8 @@ class KomootApi {
       type: "Feature",
       geometry: {
         type: "LineString",
-        coordinates: coords.map(p => [p.lng, p.lat])
+        // GeoJSON position: [lng, lat, altitude]
+        coordinates: coords.map(p => [p.lng, p.lat, p.alt])
       },
       properties: {
         id: tour.id,
@@ -129,8 +125,8 @@ class KomootApi {
         elevationUp: tour.elevation_up,
         elevationDown: tour.elevation_down,
         timeInMotion: tour.time_in_motion,
-        timestamps: coords.map(p => p.t), // optional timestamps
-        coordinates: coords // full raw coordinates if needed
+        // Offsets in ms from the start of the tour, parallel to geometry.coordinates
+        timestamps: coords.map(p => p.t)
       }
     };
   }

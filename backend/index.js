@@ -53,15 +53,16 @@ app.get('/api/update', async (req, res) => {
       const coordinates = await api.fetchCoordinates(tour.id);
       const geojson = api.convertToGeoJson(tour, coordinates);
       const filename = `${tour.id}.geojson`;
-      fs.writeFileSync(path.join(directoryPath, filename), JSON.stringify(geojson, null, 2));
+      fs.writeFileSync(path.join(directoryPath, filename), JSON.stringify(geojson));
       console.log(`Saved ${filename}`);
     }
 
     res.status(200).send({success: 'tours updated', tours: missingTours.map(t => t.id )})
 
   } catch(e) {
-    console.log('error: ', e);
-    res.status(500).send({error: e});
+    // An Error object serialises to {} in JSON, so send the message.
+    console.error('[/api/update] failed:', e);
+    res.status(500).send({error: e.message});
   }
 });
 

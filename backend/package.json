@@ -5,8 +5,14 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "komoot",
+    "geojson",
+    "hiking",
+    "gpx",
+    "leaflet"
+  ],
+  "author": "Philippe Meyer",
   "license": "ISC",
   "description": "Express API serving hiking tours as GeoJSON, synced from Komoot",
   "dependencies": {
