@@ -30,7 +30,9 @@ cd ..
 
 # 2. Clear the staging area, so nothing from a previous run - or a previous
 # directory layout - can be copied into the live deploy.
-ssh "$PI_USER@$PI_HOST" "rm -rf '$TMP_ROOT'" || { echo "❌ Could not clear staging on the Pi"; exit 1; }
+# rsync creates only the last path component, so both trees are made here.
+ssh "$PI_USER@$PI_HOST" "rm -rf '$TMP_ROOT' && mkdir -p '$TMP_SERVER_DIR' '$TMP_REACT_DIR'" \
+  || { echo "❌ Could not prepare staging on the Pi"; exit 1; }
 
 # 3. Deploy Node backend to Pi (excluding node_modules and the tour data)
 # gpx/ is the server's own data directory: tours downloaded on the Pi via
