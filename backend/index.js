@@ -16,6 +16,11 @@ const password = process.env.KOMOOT_PASSWORD;
 
 var app = express()
 
+// A sync is a long, file-writing operation against a rate-limited third party.
+// Two overlapping runs would list the same tours, find the same files missing
+// and download them twice, so only one is allowed at a time.
+let syncInProgress = false;
+
 app.use(cors())
 
 const directoryPath = path.join(__dirname, 'gpx');
@@ -34,17 +39,24 @@ app.get('/api/files', (req, res) => {
       return res.status(500).json({ error: 'Failed to read directory' });
     }
 
-    res.json(files);
+    // Only completed tour files: a sync briefly leaves <id>.geojson.tmp in
+    // place, and the client must not try to load one.
+    res.json(files.filter(name => name.endsWith('.geojson')));
   });
 });
 
 // Endpoint to update the files vs Komoot
 app.get('/api/update', async (req, res) => {
-  try {
-    if (!username || !password) {
-      return res.status(500).send({ error: 'KOMOOT_EMAIL and KOMOOT_PASSWORD must be set (see .env.example)' });
-    }
+  if (!username || !password) {
+    return res.status(500).send({ error: 'KOMOOT_EMAIL and KOMOOT_PASSWORD must be set (see .env.example)' });
+  }
 
+  if (syncInProgress) {
+    return res.status(409).send({ error: 'A sync is already running' });
+  }
+  syncInProgress = true;
+
+  try {
     const existingFiles = fs.readdirSync(directoryPath);
 
     const api = new KomootApi();
@@ -57,7 +69,15 @@ app.get('/api/update', async (req, res) => {
       const coordinates = await api.fetchCoordinates(tour.id);
       const geojson = api.convertToGeoJson(tour, coordinates);
       const filename = `${tour.id}.geojson`;
-      fs.writeFileSync(path.join(directoryPath, filename), JSON.stringify(geojson));
+      const target = path.join(directoryPath, filename);
+      const tmp = `${target}.tmp`;
+
+      // Write to a temporary file and rename it into place. rename(2) is
+      // atomic within a filesystem, so a reader either sees the previous file
+      // or the complete new one -- never a half-written one that fails to
+      // parse and silently drops the trail from the map.
+      fs.writeFileSync(tmp, JSON.stringify(geojson));
+      fs.renameSync(tmp, target);
       console.log(`Saved ${filename}`);
     }
 
@@ -67,6 +87,8 @@ app.get('/api/update', async (req, res) => {
     // An Error object serialises to {} in JSON, so send the message.
     console.error('[/api/update] failed:', e);
     res.status(500).send({error: e.message});
+  } finally {
+    syncInProgress = false;
   }
 });
 
