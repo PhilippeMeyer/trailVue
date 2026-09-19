@@ -44,19 +44,6 @@ Each tour is stored as a single GeoJSON `Feature`, written minified:
 }
 ```
 
-Files written before this format stored every point twice — once in
-`geometry.coordinates` and again as raw objects in `properties.coordinates`.
-`backend/scripts/compactGeojson.js` converts them losslessly (it cut a
-116-tour collection from 13.1 MB to 2.8 MB):
-
-```bash
-cd backend
-node scripts/compactGeojson.js --dry-run   # report only
-node scripts/compactGeojson.js             # rewrite in place
-```
-
-It is idempotent, so re-running it on already-converted files is a no-op.
-
 ## Getting started
 
 ```bash
